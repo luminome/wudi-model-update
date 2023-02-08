@@ -39,16 +39,16 @@ class JsonSafeEncoder(json.JSONEncoder):
 
         return super(JsonSafeEncoder, self).default(obj)
 
-
-class JsonDecimalEncoder(json.JSONEncoder):
-    #alphonso baschiera
-    def default(self, obj):
-        # 👇️ if passed in object is instance of Decimal
-        # convert it to a string
-        if isinstance(obj, Decimal):
-            return str(obj)
-        # 👇️ otherwise use the default behavior
-        return json.JSONEncoder.default(self, obj)
+#
+# class JsonDecimalEncoder(json.JSONEncoder):
+#     #alphonso baschiera
+#     def default(self, obj):
+#         # 👇️ if passed in object is instance of Decimal
+#         # convert it to a string
+#         if isinstance(obj, Decimal):
+#             return str(obj)
+#         # 👇️ otherwise use the default behavior
+#         return json.JSONEncoder.default(self, obj)
 
 
 def title_case(string):
