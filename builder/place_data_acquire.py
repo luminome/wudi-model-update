@@ -3,6 +3,7 @@ import overpy
 import json
 import time
 import pandas as pd
+import utilities as util
 
 
 def get_overpass_data(source_dataframe: pd.DataFrame):
@@ -12,7 +13,8 @@ def get_overpass_data(source_dataframe: pd.DataFrame):
 
     while n < source_dataframe.shape[0]:
         wd = source_dataframe.iloc[n]
-        print('n'+str(n).zfill(2))
+        util.show_progress(f"get_overpass_data: wudi Nº{int(wd['pid'])}", n, source_dataframe.shape[0])
+        #print('n'+str(n).zfill(2))
 
         try:
             q = f"[out:json];node(around:25000, {wd['M_lat']}, {wd['M_lon']})[place~\"^(city|town|village)$\"];out;"
@@ -69,7 +71,8 @@ def get_wiki_media_data(source_locations: dict):
     data_flat_list = []
 
     for i, loc in enumerate(source_locations):
-        print(i, loc)
+        #print(i, loc)
+        util.show_progress(f"get_wiki_media_data", i, len(source_locations))
         q_data = None
 
         if 'tags' in source_locations[loc]:
@@ -94,25 +97,27 @@ def get_wiki_media_data(source_locations: dict):
             if 'wikidata' in source_locations[loc]['tags']:
                 q_data = source_locations[loc]['tags']['wikidata']
                 #print(i, loc, q_data)
+                try:
+                    wikidata_sparql_url = "https://query.wikidata.org/sparql"
+                    query_string = query % {'q': q_data}
+                    response = requests.get(wikidata_sparql_url, params={"query": query_string, "format": "json"})
+                    jso = json.loads(response.text)
+                    time.sleep(1.125)
 
-                wikidata_sparql_url = "https://query.wikidata.org/sparql"
-                query_string = query % {'q': q_data}
-                response = requests.get(wikidata_sparql_url, params={"query": query_string, "format": "json"})
-                jso = json.loads(response.text)
-                time.sleep(1.125)
+                    for di, k in enumerate(jso['head']['vars']):
+                        bindings = jso['results']['bindings']
+                        if len(bindings):
+                            try:
+                                tmp[k] = bindings[0][k]['value']
+                            except KeyError:
+                                pass
 
-                for di, k in enumerate(jso['head']['vars']):
-                    bindings = jso['results']['bindings']
-                    if len(bindings):
-                        try:
-                            tmp[k] = bindings[0][k]['value']
-                        except KeyError:
-                            pass
+                    if 'waterLabels' in tmp and len(tmp['waterLabels']) == 0:
+                        del tmp['waterLabels']
 
-                if 'waterLabels' in tmp and len(tmp['waterLabels']) == 0:
-                    del tmp['waterLabels']
-
-                tmp['source'] = q_data
+                    tmp['source'] = q_data
+                except json.decoder.JSONDecodeError:
+                    pass
 
             if 'place' in tmp['tags']:
                 tmp['type'] = tmp['tags']['place']
@@ -133,8 +138,8 @@ def get_wiki_media_data(source_locations: dict):
             del tmp['tags']
             data_flat_list.append(tmp)
 
-            if q_data is not None:
-                print(tmp)
+            # if q_data is not None:
+            #     print(tmp)
 
     return data_flat_list
     # when complete, save this all up

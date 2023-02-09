@@ -220,11 +220,11 @@ def normalize_val(val, mi, ma):
     return (val - mi) / (ma - mi)
 
 
-def show_support_file(args):
+def show_support_file(file_path):
     import pandas as pd
 
-    kext = str(args[0]).split('.')[-1]
-    path = os.path.join(conf.support_path, str(args[0]))
+    kext = str(file_path).split('.')[-1]
+    path = os.path.join(conf.support_path, str(file_path))
 
     if kext == 'npy':
         data = np.load(path, None, True)

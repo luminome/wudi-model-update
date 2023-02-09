@@ -254,11 +254,18 @@ def depth_contours() -> List:
         g_data = gaussian_filter(points_data, sigma=conf.contour_ranges["filter"][ra])
         g_range = np.arange(0, conf.contour_ranges["depth_max"], conf.contour_ranges["depth_interval"][ra])
 
-        for i, lv in enumerate(g_range):
-            clutch = contour_getter(g_data, -lv)
+        start = []  #g_range  #[conf.contour_ranges["depth_interval"][ra]]
+
+        for r in g_range:
+            start.append(-r)
+        #
+        # print(start)
+
+        for i, lv in enumerate(start):
+            clutch = contour_getter(g_data, lv)
             labels = contour_labels_getter(clutch)
             contours_all[ra].append({'d': float(lv), 'contours': clutch, 'labels': labels})
-            util.show_progress(f"generate contours {ra} {lv}m", i, len(g_range))
+            util.show_progress(f"generate contours {ra} {lv}m", i, len(start))
 
     dep = conf.contour_ranges["iso_bath_depth"]
     print('generating iso_bath', dep)
@@ -271,13 +278,19 @@ def depth_contours() -> List:
     ]
 
 
-def places() -> List:
+def places(has_overpass: bool = False) -> List:
     import pandas as pd
+    import json
 
     df = pd.read_pickle(os.path.join(conf.support_path, 'wudi-points-Dataframe.pkl'))
+    result_one = 'map-places-overpass loaded.'
+    if not has_overpass:
+        places_overpass = place_data_acquire.get_overpass_data(df)
+        result_one = util.save_asset(places_overpass, 'map-places-overpass')
 
-    places_overpass = place_data_acquire.get_overpass_data(df)
-    result_one = util.save_asset(places_overpass, 'map-places-overpass')
+    src = os.path.join(conf.support_path, 'map-places-overpass-dict.json')
+    with open(src) as depth_file:
+        places_overpass = json.load(depth_file)
 
     places_overpass_wiki = place_data_acquire.get_wiki_media_data(places_overpass)
     result_two = util.save_asset(places_overpass_wiki, 'map-places-overpass-wiki')
@@ -411,8 +424,9 @@ def map_layers() -> List:
 
 
 def tests():
-    print(places())
-    # print(depth_contours())
+    # print(geo_associations())
+    # print(places(True))
+    print(depth_contours())
     # print(map_geometry())
     # print(map_layers())
     # ape = load.depth_contours()

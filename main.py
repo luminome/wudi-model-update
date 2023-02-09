@@ -22,7 +22,8 @@ command = {
     'places': prepare.tests,
     'sectorize': sectorize.save_sectors,
     'post_process': builder_process.post,
-    'day_test': test_depth
+    'day_test': test_depth,
+    'contours': prepare.depth_contours
 }
 
 
