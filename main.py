@@ -18,12 +18,13 @@ command = {
     'build_databases': updater_process.build_databases,
     'test_prep': prepare.geo_associations,
     'tests': save_database.tests,
-    'static_tests': save_static.tests,
+    'static_save': save_static.save,
     'places': prepare.tests,
     'sectorize': sectorize.save_sectors,
     'post_process': builder_process.post,
     'day_test': test_depth,
-    'contours': prepare.depth_contours
+    'contours': prepare.depth_contours,
+    'layers': prepare.map_layers
 }
 
 

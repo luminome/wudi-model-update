@@ -11,6 +11,7 @@ import numpy as np
 import utilities as util
 
 from builder import load
+from tools import get_sector_depth_map
 
 
 class Sector:
@@ -53,6 +54,8 @@ class Sector:
                     with open(sector_asset_path, 'w') as fp:
                         json.dump(nv, fp)
                     bytes_saved += os.path.getsize(sector_asset_path)
+
+            self.meta[k] = list(dict.fromkeys(self.meta[k]))
 
         meta_asset_path = os.path.join(s_path, "meta.json")
         with open(meta_asset_path, 'w') as fp:
@@ -115,6 +118,7 @@ def save_sectors():
         sector_group = build_sectors(deg)  #aka '2'
         map_levels = load.map_layers()
         protected_areas = load.protected_areas()
+        depth_source = load.depth_dict()
 
         for level, geometry in enumerate(map_levels):
             print('map level:', level)
@@ -146,6 +150,11 @@ def save_sectors():
                             })
 
                     sector.add_data(level, 'contours', contour_set)
+
+                if 'depth_maps' in conf.sector_save_layers:
+                    packet = get_sector_depth_map(depth_source, geometry['contours'], sector, level)
+                    if packet['contour_lines'] is not None:
+                        sector.add_data(level, 'depth_maps', [packet])
 
                 if 'protected_areas' in conf.sector_save_layers:
                     sector.add_data(level, 'protected_areas', get_sector_protected_areas(protected_areas, sector, level))

@@ -34,7 +34,8 @@ def data_to_text(support_file: str):
         raw = '"ID",' + ','.join([util.value_cleaner(x) for x in cols]) + ','
 
         for j, e in df.iterrows():
-            row_str = str(j) + ',{:s}'.format(','.join([util.value_cleaner(x, conf.db_float_precision, True) for x in e])) + ','
+            # print(list(e))
+            row_str = str(j) + ',{:s}'.format(','.join([str(util.value_cleaner(x, conf.db_float_precision, True)) for x in e])) + ','
             raw += row_str
 
         file_name = f"{support_file}-{col_count}.txt"
@@ -43,7 +44,8 @@ def data_to_text(support_file: str):
             file.write(raw[:-1])
 
 
-def tests():
-    pass
-    # as_text('map-iso-bath')
-    # as_text('map-geo-names')
+def save():
+    # pass
+    data_to_text('map-eco-regions')
+    data_to_text('map-iso-bath')
+    data_to_text('map-geo-names')

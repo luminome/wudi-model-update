@@ -10,8 +10,7 @@ wudi_database_path = './data/output-databases/wudi.db'
 wudi_model_database_path = './data/output-databases/map.db'
 wudi_points_masked_by_eco_region = True
 
-
-sector_save_layers = ['map_polygons', 'map_lines', 'depth_contours', 'protected_areas']
+sector_save_layers = ['map_polygons', 'map_lines', 'depth_contours', 'depth_maps', 'protected_areas']
 
 db_float_precision = 4
 
@@ -101,10 +100,11 @@ contour_ranges = {
         200,
         100
     ],
-    "depth_max": 5500,
+    "depth_max": 5400,
     "label_min_length": 0.5,
     "label_density": 0.5,
-    "label_size": 0.01
+    "label_size": 0.015,
+    "line_density": 0.015,  #0.03625
     # "depth_max": 5000
 }
 

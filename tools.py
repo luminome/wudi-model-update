@@ -2,6 +2,7 @@
 import numpy as np
 from scipy.spatial import Delaunay
 
+
 def bokeh_plot_simple(points_dicts: list, lines_dicts: list, plot_label=None):
     from bokeh.plotting import figure, output_file, show, save
     from bokeh.models import ColumnDataSource
@@ -55,55 +56,11 @@ def bokeh_plot_simple(points_dicts: list, lines_dicts: list, plot_label=None):
     reset_output()
 
 
-def bokeh_plot(lines_iterable: list, points_iterable: list, plot_label=None):
-    from bokeh.plotting import figure, output_file, show
-    from bokeh.models import GeoJSONDataSource, ColumnDataSource
-    from bokeh.models.tools import HoverTool, WheelZoomTool, PanTool, CrosshairTool, LassoSelectTool
-
-    p = figure(title=str(plot_label), match_aspect=True, active_scroll="wheel_zoom", lod_threshold=None)
-
-    line_id, line_x, line_y, length, line_color, coords = [], [], [], [], [], []
-
-    t_color = 'blue'
-    plot_data_sources = {}
-    for i, line in enumerate(lines_iterable):
-        line_id.append(i)
-        line_color.append(t_color)
-        line_x.append(list(line.coords.xy[0]))
-        line_y.append(list(line.coords.xy[1]))
-        length.append(line.length)
-        coords.append(len(line.coords))
-
-    plot_data_sources['lines'] = ColumnDataSource(dict(x=line_x, y=line_y, id=line_id, color=line_color, length=length, coords=coords))
-
-    point_id, point_x, point_y, point_color = [], [], [], []
-    for i, point in enumerate(points_iterable):
-        # point_id.append(i)
-        # point_color.append(t_color)
-        point_x.append(point.x)
-        point_y.append(point.y)
-
-    data = {'x_values': point_x,
-            'y_values': point_y}
-
-    # create a ColumnDataSource by passing the dict
-    source = ColumnDataSource(data=data)
-
-    # add a circle renderer with a size, color, and alpha
-    p.circle(x='x_values', y='y_values', size=5.0, source=source, color='red', line_width=0, alpha=0.5)
-    # p.circle(x=point_x, y=point_y, size='3', color='red', line_width=0, alpha=0.5)
-
-    line_plot = p.multi_line(
-        'x',
-        'y',
-        source=plot_data_sources['lines'],
-        line_color="color",
-        line_width=1.0
-    )
-
-    p.add_tools(HoverTool(renderers=[line_plot], tooltips=[('id', '@id'), ('length', '@length'), ('coords', '@coords')]))
-
-    show(p)
+# https://stackoverflow.com/questions/41200719/how-to-get-all-array-edges
+def border_elems(a, W):  # Input array : a, Edgewidth : W
+    n = a.shape[0]
+    r = np.minimum(np.arange(n)[::-1], np.arange(n))
+    return a[np.minimum(r[:, None], r) < W]
 
 
 def get_depth_points(data, sector, level) -> np.ndarray:
@@ -121,7 +78,7 @@ def get_depth_points(data, sector, level) -> np.ndarray:
     sample_lon = (sector.loc[0]-data_origin[0])
     sample_lat = (data_origin[1]-sector.loc[1])
 
-    print('relative', sample_lon, sample_lat)
+    #print('relative', sample_lon, sample_lat)
 
     arm = data['data']
     x_range = np.arange(0, arm.shape[1], 1)
@@ -129,73 +86,67 @@ def get_depth_points(data, sector, level) -> np.ndarray:
 
     lon_start = [sample_lon*r, (sample_lon+degs) * r]
     lat_start = [sample_lat*r, (sample_lat+degs) * r]
-    print(lon_start, lat_start)
+    #print(lon_start, lat_start)
 
     k_o = r/60  #1/2  #0  # 1/60
     x_pts = np.linspace(lon_start[0] - k_o, lon_start[1] - k_o, num=int(r/q)+1, endpoint=True)
     y_pts = np.linspace(lat_start[0] - k_o, lat_start[1] - k_o, num=int(r/q)+1, endpoint=True)
 
     points_x, points_y = np.meshgrid(x_pts, y_pts)
-    print('grid', points_x.shape)
+    #print('grid', points_x.shape)
 
     k = points_x.size
     d = [points_x.reshape(1, k)[0], points_y.reshape(1, k)[0]]
     check_points = list(zip(d[1], d[0]))
 
     k_in = interpn([y_range, x_range], arm, check_points, method='linear', bounds_error=False, fill_value=None)
-    print(k_in.shape)
-    print('result min, max', k_in[0], k_in[-1])
+    #print(k_in.shape)
+    #print('result min, max', k_in[0], k_in[-1])
 
     ost = [-6, 46]
     st_lon = np.linspace(ost[0]+(lon_start[0]/r), ost[0]+(lon_start[1]/r), num=int(r/q)+1, endpoint=True)
     st_lat = np.linspace(ost[1]-(lat_start[0]/r), ost[1]-(lat_start[1]/r), num=int(r/q)+1, endpoint=True)
     st_x, st_y = np.meshgrid(st_lon, st_lat)
 
-    # prek = k_in.reshape(points_x.shape[0], points_x.shape[1])
-    # print(prek[0:1, 0:1])
-
     k = st_x.size
     d = [st_x.reshape(1, k)[0], st_y.reshape(1, k)[0], k_in]
 
-
-
     pck = np.column_stack((d[0], d[1], d[2]))
-    pck = np.delete(pck, np.where((pck[:, 0] < -6) | (pck[:, 1] > 46))[0], axis=0)
-    # pck = np.delete(pck, (np.where(pck[:, 2] > 0)[0]), axis=0)
+    # pck = np.delete(pck, np.where((pck[:, 0] < -6) | (pck[:, 1] > 46))[0], axis=0)
 
     kl = points_x.shape[0]
     index = np.arange(0, kl*kl, 1).reshape(kl, kl)
     filter_indices = border_elems(index, 1)
 
-    d_pck = pck  #[filter_indices]  # pck.reshape(points_x.shape[0], points_x.shape[1])
-    # d_pck = np.delete(d_pck, (np.where(d_pck[:, 2] > 0)[0]), axis=0)
-    # print(d_pck)
+    d_pck = pck[filter_indices]
+    d_pck = np.delete(d_pck, np.where((d_pck[:, 0] < -6) | (d_pck[:, 1] > 46))[0], axis=0)
+    d_pck = np.delete(d_pck, (np.where(d_pck[:, 2] > 0)[0]), axis=0)
 
-    # pck = np.delete(pck, (np.where(pck[:, 2] > 0)[0]), axis=0)
-    # print(pck.shape)
-    # print(pck[0])
-    #
-    # d = [pck[:, 0], pck[:, 1], pck[:, 2]]
-
-    return pck, d_pck
+    return d_pck
 
 
-# https://stackoverflow.com/questions/41200719/how-to-get-all-array-edges
-def border_elems(a, W):  # Input array : a, Edgewidth : W
-    n = a.shape[0]
-    r = np.minimum(np.arange(n)[::-1], np.arange(n))
-    return a[np.minimum(r[:, None], r) < W]
+def raw_delaunay(xa, ya, za):
+    x = np.array(xa)
+    y = np.array(ya)
+    z = np.array(za)
+    xy = np.stack((x, y), axis=1)
 
+    tri = Delaunay(xy, furthest_site=False, qhull_options="Qi")
+    mask = np.ones((tri.simplices.shape[0]), dtype=bool)
 
-def mask_borders(arr, num=1):
-    mask = np.zeros(arr.shape, bool)
-    for dim in range(arr.ndim):
-        mask[tuple(slice(0, num) if idx == dim else slice(None) for idx in range(arr.ndim))] = True
-        mask[tuple(slice(-num, None) if idx == dim else slice(None) for idx in range(arr.ndim))] = True
-    return mask
+    for n, s in enumerate(tri.simplices):
+        mask[n] = (z[s[0]] == 0.0 and z[s[1]] == 0.0 and z[s[2]] == 0.0)
 
+    # import matplotlib.pyplot as plt
+    # fig = plt.figure()
+    # ax = fig.add_subplot(1, 1, 1, projection='3d')
+    # ax.plot_trisurf(x, y, z, triangles=tri.simplices, mask=mask, cmap=plt.cm.Spectral)
+    # print(tri.simplices.shape)
+    # print(tri.simplices[np.logical_not(mask)].shape)
+    # plt.show()
 
-#// DO OR DON'T TRUSHT MATPLOTLIB
+    return tri.simplices[np.logical_not(mask)]
+
 
 def test_delaunay(xa, ya, za):
     import matplotlib.pyplot as plt
@@ -203,56 +154,221 @@ def test_delaunay(xa, ya, za):
     y = np.array(ya)
     z = np.array(za)
 
-    tri = Delaunay(np.array([x, y]).T, furthest_site=False)
+    ax = x
+    ay = y
+    az = z
+
+    xy = np.stack((x, y), axis=1)
+    tri = Delaunay(xy, furthest_site=False, qhull_options="Q3 Q4 Q6 Q7 Q8 Qi QJ Pp")  #//, qhull_options="QJ Pp"
 
     k_tri = []
+    #
+    # print(z.tolist())
+    mask = []
 
     for s in tri.simplices:
-        if za[s[0]] <= 0.0 and za[s[1]] <= 0.0 and za[s[2]] <= 0.0:
-            k_tri.append(s)
+        kt = z[s[0]]
+        if z[s[1]] == kt and z[s[2]] == kt:
+            mask.append(True)
         else:
-            print(za[s[0]], za[s[1]], za[s[2]])
-
-    k_tri = np.array(k_tri)
+            mask.append(False)
 
     fig = plt.figure()
 
     ax = fig.add_subplot(1, 1, 1, projection='3d')
 
-    ax.plot_trisurf(x, y, z, cmap=plt.cm.Spectral)
+    ax.plot_trisurf(x, y, z, triangles=tri.simplices, mask=mask, cmap=plt.cm.Spectral)
+
+    #
+    # print(tri.simplices.shape)
+    print(tri.simplices[np.logical_not(mask)])
 
     plt.show()
 
-#
-# def plot_delaunay(group: Delaunay, xa, ya, za):
-#     import matplotlib.pyplot as plt
-#
-#     ktri = group.simplices  #[]
-#
-#     # for s in tri.simplices:
-#     #     if z[s[0]] <= 1.0 and z[s[1]] <= 1.0 and z[s[2]] <= 1.0:
-#     #         ktri.append(s)
-#
-#     x = np.array(xa)
-#     y = np.array(ya)
-#     z = np.array(za)
-#
-#     fig = plt.figure()
-#     ax = fig.add_subplot(1, 1, 1, projection='3d')
-#
-#     # The triangles in parameter space determine which x, y, z points are
-#     # connected by an edge
-#     #ax.plot_trisurf(x, y, z, triangles=tri.triangles, cmap=plt.cm.Spectral)
-#     ax.plot_trisurf(x, y, z, triangles=ktri, cmap=plt.cm.Spectral)
-#
-#     plt.show()
+    return tri.simplices[np.logical_not(mask)]
 
+
+def get_sector_depth_map(depth_source, contours_at_level, sector, level) -> dict:
+    from shapely.geometry import LineString
+    import utilities as util
+    import config as conf
+    #contours_at_level = contours_source[int(level)]
+
+    def build_vertex_collection(depth: float, group: list, collector, record):
+        for c in group:
+            f = util.poly_s_to_list(c)
+            for n, raw_line in enumerate(f):
+                #line = line.simplify(0.005)  #oversimplify gets gaps in mesh
+                distance_delta = conf.contour_ranges['line_density']
+                if raw_line.length >= distance_delta:
+
+                    distances = np.arange(0, raw_line.length, distance_delta)
+                    points = [raw_line.interpolate(distance) for distance in distances]
+
+                    if len(raw_line.boundary.geoms):
+                        points += [raw_line.boundary.geoms[1]]
+                    else:
+                        points += [raw_line.coords[0]]
+
+                    if len(points) > 4:
+                        line = LineString(points)
+
+                        start_index = len(collector['x'])
+                        for co in line.coords:
+                            collector['x'].append(co[0])
+                            collector['y'].append(co[1])
+                            collector['z'].append(depth)
+                        end_index = len(collector['x'])
+
+                        line_stat = {
+                            "depth": depth,
+                            "len": util.value_cleaner(line.length, 5),
+                            "coords": len(line.coords),
+                            "start": start_index,
+                            "end": end_index
+                        }
+
+                        collector['lines'].append(line)
+                        record.append(line_stat)
+                        #print(line_stat)
+
+    points_collector = {"x": [], "y": [], "z": [], "lines": []}
+    lines_record = []
+    labels_collection = []
+
+    for depth_level, contour_depth in enumerate(contours_at_level):
+        contour_labels_indices = [r for (r, k) in enumerate(contour_depth['labels']) if k.intersects(sector.box)]
+        contour_labels = [sector.box.intersection(contour_depth['labels'][p]) for p in contour_labels_indices]
+        if len(contour_labels):
+            labels_collection.append({
+                'd': contour_depth['d'],
+                'labels': [util.geometry_to_coords(fp) for fp in contour_labels]})
+
+        contour_indices = [r for (r, k) in enumerate(contour_depth['contours']) if k.intersects(sector.box)]
+        if len(contour_indices):
+            #print(f"Depth-level: {depth_level} ({contour_depth['d']}m)")
+            contours = [sector.box.intersection(contour_depth['contours'][p]) for p in contour_indices]
+            build_vertex_collection(contour_depth['d'], contours, points_collector, lines_record)
+
+    if len(lines_record) == 0:
+        return {"contour_lines": None}
+
+    grid_array_d = get_depth_points(depth_source, sector, int(level))
+
+    contour_vt = np.stack((points_collector['x'], points_collector['y']), axis=1)
+
+    for r in grid_array_d:
+        points_collector['x'].append(r[0])
+        points_collector['y'].append(r[1])
+        points_collector['z'].append(r[2])
+
+    indices = raw_delaunay(points_collector['x'], points_collector['y'], points_collector['z'])
+    contour_vt_xy = contour_vt.flatten()
+    depth_vt_xyz = grid_array_d.flatten()
+
+    packet = {
+        "contour_lines": lines_record,
+        "verts_xy": contour_vt_xy.round(4).tolist(),
+        "verts_xyz": depth_vt_xyz.tolist(),
+        "indices": indices.flatten().tolist(),
+        "labels": labels_collection
+    }
+
+    return packet
+
+
+def get_sector_depth_map_alt(depth_source, contours_at_level, sector, level, limit: tuple) -> tuple:
+    from shapely.geometry import LineString
+    import utilities as util
+    import config as conf
+    #contours_at_level = contours_source[int(level)]
+
+    def build_vertex_collection(depth: float, group: list, collector, record):
+        for c in group:
+            f = util.poly_s_to_list(c)
+            for n, raw_line in enumerate(f):
+                #line = line.simplify(0.005)  #oversimplify gets gaps in mesh
+                distance_delta = conf.contour_ranges['line_density']
+                if raw_line.length >= distance_delta:
+
+                    distances = np.arange(0, raw_line.length, distance_delta)
+                    points = [raw_line.interpolate(distance) for distance in distances]
+
+                    if len(raw_line.boundary.geoms):
+                        points += [raw_line.boundary.geoms[1]]
+                    else:
+                        points += [raw_line.coords[0]]
+
+                    if len(points) > 4:
+                        line = LineString(points)
+
+                        start_index = len(collector['x'])
+                        for co in line.coords:
+                            collector['x'].append(co[0])
+                            collector['y'].append(co[1])
+                            collector['z'].append(depth)
+                        end_index = len(collector['x'])
+
+                        line_stat = {
+                            "depth": depth,
+                            "len": util.value_cleaner(line.length, 5),
+                            "coords": len(line.coords),
+                            "start": start_index,
+                            "end": end_index
+                        }
+
+                        collector['lines'].append(line)
+                        record.append(line_stat)
+                        #print(line_stat)
+
+    points_collector = {"x": [], "y": [], "z": [], "lines": []}
+    lines_record = []
+    labels_collection = []
+
+    for depth_level, contour_depth in enumerate(contours_at_level):
+        # contour_labels_indices = [r for (r, k) in enumerate(contour_depth['labels']) if k.intersects(sector.box)]
+        # contour_labels = [sector.box.intersection(contour_depth['labels'][p]) for p in contour_labels_indices]
+        # if len(contour_labels):
+        #     labels_collection.append({
+        #         'd': contour_depth['d'],
+        #         'labels': [util.geometry_to_coords(fp) for fp in contour_labels]})
+
+        if limit[0] <= depth_level <= limit[1]:
+            contour_indices = [r for (r, k) in enumerate(contour_depth['contours']) if k.intersects(sector.box)]
+            if len(contour_indices):
+                print(f"Depth-level: {depth_level} ({contour_depth['d']}m)")
+                contours = [sector.box.intersection(contour_depth['contours'][p]) for p in contour_indices]
+                build_vertex_collection(contour_depth['d'], contours, points_collector, lines_record)
+
+    if len(lines_record) == 0:
+        return {"contour_lines": None}
+    #
+    # grid_array_d = get_depth_points(depth_source, sector, int(level))
+    #
+    # contour_vt = np.stack((points_collector['x'], points_collector['y']), axis=1)
+    #
+    # for r in grid_array_d:
+    #     points_collector['x'].append(r[0])
+    #     points_collector['y'].append(r[1])
+    #     points_collector['z'].append(r[2])
+    #
+    # indices = raw_delaunay(points_collector['x'], points_collector['y'], points_collector['z'])
+    # contour_vt_xy = contour_vt.flatten()
+    # depth_vt_xyz = grid_array_d.flatten()
+    #
+    # packet = {
+    #     "contour_lines": lines_record,
+    #     "verts_xy": contour_vt_xy.round(4).tolist(),
+    #     "verts_xyz": depth_vt_xyz.tolist(),
+    #     "indices": indices.flatten().tolist(),
+    #     "labels": labels_collection
+    # }
+
+    return points_collector, lines_record
 
 
 def test_depth(lon: str, lat: str, level: str = 0):
-
-    from shapely.geometry import LineString
-    import numpy as np
+    # import numpy as np
     import config as conf
     from builder import sectorize
     from builder import load
@@ -278,95 +394,10 @@ def test_depth(lon: str, lat: str, level: str = 0):
 
     contours_at_level = depth_contour_levels[int(level)]
 
-    def build_vertex_collection(depth: float, group: list, collector, record):
-        for c in group:
-            f = util.poly_s_to_list(c)
-            for n, raw_line in enumerate(f):
-                #line = line.simplify(0.005)  #oversimplify gets gaps in mesh
-                distance_delta = 0.025
-                if raw_line.length >= distance_delta:
+    points_collector, lines_record = get_sector_depth_map_alt(depth_source, contours_at_level, test_sector, int(level), (0, 4,))
+    print(lines_record)
+    # print(pck)
 
-                    distances = np.arange(0, raw_line.length, distance_delta)
-                    points = [raw_line.interpolate(distance) for distance in distances]
-
-                    if len(raw_line.boundary):
-                        points += [raw_line.boundary[1]]
-                    else:
-                        points += [raw_line.coords[0]]
-
-                    if len(points) > 3:
-                        line = LineString(points)
-                        # line = raw_line
-
-                        start_index = len(collector['x'])
-                        for co in line.coords:
-                            collector['x'].append(co[0])
-                            collector['y'].append(co[1])
-                            collector['z'].append(depth)
-                            collector['ax'].append(co[0])
-                            collector['ay'].append(co[1])
-                            collector['az'].append(depth)
-
-                        end_index = len(collector['x'])
-
-                        line_stat = {
-                            "depth": depth,
-                            "len": util.value_cleaner(line.length, 5),
-                            "coords": len(line.coords),
-                            "start": start_index,
-                            "end": end_index
-                        }
-
-                        collector['lines'].append(line)
-                        record.append(line_stat)
-                        print(line_stat)
-
-    points_collector = {"ax": [], "ay": [], "az": [], "x": [], "y": [], "z": [], "lines": []}
-    lines_record = []
-
-
-    tri = {}
-
-    for depth_level, contour_depth in enumerate(contours_at_level):
-        contour_indices = [r for (r, k) in enumerate(contour_depth['contours']) if k.intersects(test_sector.box)]
-        if len(contour_indices):
-            print(f"Depth-level: {depth_level} ({contour_depth['d']}m)")
-
-            contours = [test_sector.box.intersection(contour_depth['contours'][p]) for p in contour_indices]
-            # if depth_level == 0:
-            #     build_vertex_collection(1000, contours, points_collector, lines_record)
-
-            build_vertex_collection(contour_depth['d'], contours, points_collector, lines_record)
-
-
-
-            # stash = [points_collector["ax"], points_collector["ay"], points_collector["az"]]
-
-    #         if depth_level == 0:
-    #             build_vertex_collection(contour_depth['d'], contours, points_collector, lines_record)
-    #             tri = Delaunay(np.array([points_collector["ax"], points_collector["ay"], points_collector["az"]]).T, incremental=True)  #, qhull_options="Q12 Q4 QJ Qs")
-    #         elif depth_level > 0:
-    #             build_vertex_collection(contour_depth['d'], contours, points_collector, lines_record)
-    #             tri.add_points(np.array([points_collector["ax"], points_collector["ay"], points_collector["az"]]).T)
-    #
-    #         points_collector["ax"] = []
-    #         points_collector["ay"] = []
-    #         points_collector["az"] = []
-    #
-    #         if depth_level == 3:
-    #             pass  #break
-    #
-    # tri.close()
-    # plot_delaunay(tri, points_collector["x"], points_collector["y"], points_collector["z"])
-    # exit()
-
-            #
-            #     build_vertex_collection(100, contours, points_collector, lines_record)
-    # now add bounds
-
-    z_max = np.max(points_collector['z'])
-    z_min = np.min(points_collector['z'])
-    # ad_z = [util.normalize_val(v, z_min, z_max) * 10 for v in points_collector['z']]
     ad_z = [3.0 for v in points_collector['z']]
     data = {'x_values': points_collector['x'],
             'y_values': points_collector['y'],
@@ -377,41 +408,56 @@ def test_depth(lon: str, lat: str, level: str = 0):
     points_one = {"name": "contour-vertex", "data": data}
     lines_one = {"name": "contour", "lines": points_collector['lines']}
 
-    array_d, grid_array_d = get_depth_points(depth_source, test_sector, int(level))
+    # grid_array_d = get_depth_points(depth_source, test_sector, int(level))
+    #
+    # a = grid_array_d
+    #
+    # ad = [a[:, 0], a[:, 1], a[:, 2]]
+    #
+    # z_max = np.max(ad[2])
+    # z_min = np.min(ad[2])
+    #
+    # ad_z = [util.normalize_val(v, z_min, z_max)*10 for v in ad[2]]
+    #
+    # data = {'x_values': ad[0],
+    #         'y_values': ad[1],
+    #         'z_values': ad[2],
+    #         'color_values': ['green'] * len(ad[0]),
+    #         'size': ad_z}
+    #
+    # points_two = {"name": "depth-edges", "data": data}
 
-    a = grid_array_d
+    indices = test_delaunay(points_collector['x'], points_collector['y'], points_collector['z'])
 
-
-    ad = [a[:, 0], a[:, 1], a[:, 2]]
-
-    z_max = np.max(ad[2])
-    z_min = np.min(ad[2])
-
-    ad_z = [util.normalize_val(v, z_min, z_max)*10 for v in ad[2]]
-
-    data = {'x_values': ad[0],
-            'y_values': ad[1],
-            'z_values': ad[2],
-            'color_values': ['green'] * len(ad[0]),
-            'size': ad_z}
-
-    points_two = {"name": "depth-edges", "data": data}
-
-    bokeh_plot_simple([points_one, points_two], [lines_one], 'test scenario')
-
-    for r in a:
-        points_collector['x'].append(r[0])
-        points_collector['y'].append(r[1])
-        points_collector['z'].append(r[2])
-
-    test_delaunay(points_collector['x'], points_collector['y'], points_collector['z'])
-    exit()
-
-
-    #//isolate depth points interpolated.
-    #//isolate depth contours.
-
-
+    bokeh_plot_simple([points_one], [lines_one], 'test scenario')
+    #
+    # contour_verts = np.stack((points_collector['x'], points_collector['y']), axis=1)
+    #
+    # for r in grid_array_d:
+    #     points_collector['x'].append(r[0])
+    #     points_collector['y'].append(r[1])
+    #     points_collector['z'].append(r[2])
+    #
+    # indices = raw_delaunay(points_collector['x'], points_collector['y'], points_collector['z'])
+    #
+    # print(indices.flatten())
+    #
+    # print(contour_verts.shape)
+    # print(grid_array_d.shape)
+    # print(len(points_collector['x']))
+    #
+    # contour_verts_xy = contour_verts.flatten()
+    # depth_verts_xyz = grid_array_d.flatten()
+    #
+    # packet = {
+    #     "contour_lines": lines_record,
+    #     "verts_xy": contour_verts_xy.round(4).tolist(),
+    #     "verts_xyz": depth_verts_xyz.tolist()
+    # }
+    #
+    # print(packet)
+    #
+    # exit()
 
 
     pass

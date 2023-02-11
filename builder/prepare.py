@@ -246,11 +246,15 @@ def depth_contours() -> List:
             ep = scale(ep, xfact=1 / 60, yfact=-1 / 60, origin=(0, 0))
             ep = translate(ep, xoff=poly_origin[0], yoff=poly_origin[1])
             ep = ep.intersection(eco_regions_mask)
+
+            #ep = ep.parallel_offset(0.01, side='right', resolution=16, join_style='round', mitre_limit=5.0)
+
             contours.append(ep)
         return contours
 
     for ra in range(conf.levels_range):
         contours_all[ra] = []
+        #g_data = points_data
         g_data = gaussian_filter(points_data, sigma=conf.contour_ranges["filter"][ra])
         g_range = np.arange(0, conf.contour_ranges["depth_max"], conf.contour_ranges["depth_interval"][ra])
 
@@ -426,7 +430,7 @@ def map_layers() -> List:
 def tests():
     # print(geo_associations())
     # print(places(True))
-    print(depth_contours())
+    # print(depth_contours())
     # print(map_geometry())
     # print(map_layers())
     # ape = load.depth_contours()
