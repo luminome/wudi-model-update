@@ -252,13 +252,15 @@ def depth_contours() -> List:
             contours.append(ep)
         return contours
 
+    dep = conf.contour_ranges["iso_bath_depth"]
+
     for ra in range(conf.levels_range):
         contours_all[ra] = []
         #g_data = points_data
         g_data = gaussian_filter(points_data, sigma=conf.contour_ranges["filter"][ra])
         g_range = np.arange(0, conf.contour_ranges["depth_max"], conf.contour_ranges["depth_interval"][ra])
 
-        start = []  #g_range  #[conf.contour_ranges["depth_interval"][ra]]
+        start = [-dep]  #g_range  #[conf.contour_ranges["depth_interval"][ra]]
 
         for r in g_range:
             start.append(-r)
@@ -271,8 +273,7 @@ def depth_contours() -> List:
             contours_all[ra].append({'d': float(lv), 'contours': clutch, 'labels': labels})
             util.show_progress(f"generate contours {ra} {lv}m", i, len(start))
 
-    dep = conf.contour_ranges["iso_bath_depth"]
-    print('generating iso_bath', dep)
+    print('generating iso_bath', -dep)
     g_data = gaussian_filter(points_data, sigma=conf.contour_ranges["iso_bath_filter"])
     iso_bath.append({'d': dep, 'contours': contour_getter(g_data, dep)})
 

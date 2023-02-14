@@ -92,7 +92,7 @@ contour_ranges = {
         0.05
     ],
     "iso_bath_filter": 0.1,
-    "iso_bath_depth": -200.0,
+    "iso_bath_depth": 200.0,
     "depth_interval": [
         1600,
         800,
@@ -129,3 +129,7 @@ support_files = {
     "wudi-time-index": "wudi-time-index-ndarray.npy",
     "wudi-vectorized": "wudi-vectorized-ndarray.npy",
 }
+
+
+# CREATE INDEX wudi_ids ON wudi_daily (pid);
+# CREATE INDEX wudi_times ON wudi_daily (tim);

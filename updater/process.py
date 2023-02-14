@@ -203,12 +203,6 @@ def make_wudi_points_database(args):
     df = pd.read_pickle(os.path.join(conf.support_path, 'wudi-points-Dataframe.pkl'))
     df = df.applymap(util.cleaner_numeric, precision=5)
 
-    # print(df.info())
-    # exit()
-    #
-    # for n in range(df.shape[0]):
-    #     print(list(df.iloc[n].values))
-
     dtypes = {
         'A_lat': 'REAL',
         'A_lon': 'REAL',
@@ -229,6 +223,9 @@ def make_wudi_points_database(args):
 def make_wudi_temporal_database(args):
     #//def new_parser(do_save_db: str = None, method: str = None, from_index: int = 0, wipe: str = None):
     #//aggregate is for 40-year view, built on top of derivative
+
+    #// TODO: CREATE INDEX wudi_ids ON wudi_daily (pid);
+    #// TODO: CREATE INDEX wudi_times ON wudi_daily (tim);
 
     import numpy as np
     import netCDF4 as nC
